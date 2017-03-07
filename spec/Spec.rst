@@ -285,7 +285,7 @@ socket of the form:
 
     {
       "message_type": "status",
-      "input_file" : string,
+      "output_file" : string,
       "status": "finished"
       "worker_pid": int
     }
@@ -321,7 +321,7 @@ Once the worker has finished, it should send back a message formatted as follows
 
     {
       "message_type": "status",
-      "input_file" : string,
+      "output_file" : string,
       "status": "finished"
       "worker_pid": int
     }
@@ -340,14 +340,14 @@ socket of the form:
 
     {
       "message_type": "status",
-      "input_file" : "done",
+      "output_file" : string,
       "status": "finished"
       "worker_pid": int
     }
 
 Wrapping Up - [Master]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-As soon as the master has received the last "done" message for the reduce tasks for a given job, the Master
+As soon as the master has received the last "finished" message for the reduce tasks for a given job, the Master
 should move the output files from the reducer-output directory to the final
 output directory given in the original job creation message (create the
 directory if it doesn’t exist first). Check the job queue for the next available job,

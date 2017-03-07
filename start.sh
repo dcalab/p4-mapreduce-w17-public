@@ -11,9 +11,9 @@ python3 master.py $PORT &
 sleep 2
 
 # Start two workers, telling them to talk to the master on port 6000
-python3 worker.py $PORT (($PORT + 1)) &
+python3 worker.py $PORT ($PORT + 1) &
 sleep 1
-python3 worker.py $PORT (($PORT + 2)) &
+python3 worker.py $PORT ($PORT + 2) &
 sleep 1
 
 

@@ -2,7 +2,7 @@
 SRC = $(wildcard *.rst)
 
 PDFS=$(SRC:.rst=.pdf)
-HTML=$(SRC:.rst=.md)
+MD=$(SRC:.rst=.md)
 HTML=$(SRC:.rst=.html)
 
 all:  $(PDFS) $(MD) $(HTML)

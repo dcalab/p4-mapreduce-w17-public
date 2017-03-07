@@ -9,7 +9,8 @@ DEFAULT_PORT_NUM = 6000
     help="The port the master is listening on, default " + str(DEFAULT_PORT_NUM))
 
 def main(port_number=DEFAULT_PORT_NUM):
-    # Temp job to send to master (values can be changed)
+    # Temp job to send to master.
+    # Values can (and should!) be changed
     job_dict = {
         "message_type": "new_master_job",
         "input_directory": "./input",

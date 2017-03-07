@@ -107,7 +107,7 @@ send_job.py, helper.py</code>). The master and the worker run as seperate proces
 <p>The worker should be agnostic to map or reduce jobs. Regardless of the type of operation, the worker is responsible for running the specified executable over the input files one by one, and piping to the output directory for each input file. Once a Worker has finished its job, it should send a TCP message to the Master’s main socket of the form:</p>
 <pre class="sourceCode python3"><code>{
   &quot;message_type&quot;: &quot;status&quot;,
-  &quot;input_file&quot; : string,
+  &quot;output_file&quot; : string,
   &quot;status&quot;: &quot;finished&quot;
   &quot;worker_pid&quot;: int
 }</code></pre>
@@ -123,7 +123,7 @@ send_job.py, helper.py</code>). The master and the worker run as seperate proces
 <p>Once the worker has finished, it should send back a message formatted as follows:</p>
 <pre class="sourceCode python3"><code>{
   &quot;message_type&quot;: &quot;status&quot;,
-  &quot;input_file&quot; : string,
+  &quot;output_file&quot; : string,
   &quot;status&quot;: &quot;finished&quot;
   &quot;worker_pid&quot;: int
 }</code></pre>
@@ -133,12 +133,12 @@ send_job.py, helper.py</code>). The master and the worker run as seperate proces
 <p>Again, once a Worker has finished its job, it should send a TCP message to the Master’s main socket of the form:</p>
 <pre class="sourceCode python3"><code>{
   &quot;message_type&quot;: &quot;status&quot;,
-  &quot;input_file&quot; : &quot;done&quot;,
+  &quot;output_file&quot; : string,
   &quot;status&quot;: &quot;finished&quot;
   &quot;worker_pid&quot;: int
 }</code></pre>
 <h3 id="wrapping-up---master">Wrapping Up - [Master]</h3>
-<p>As soon as the master has received the last &quot;done&quot; message for the reduce tasks for a given job, the Master should move the output files from the reducer-output directory to the final output directory given in the original job creation message (create the directory if it doesn’t exist first). Check the job queue for the next available job, or go back to listening for jobs if there isn't one currently.</p>
+<p>As soon as the master has received the last &quot;finished&quot; message for the reduce tasks for a given job, the Master should move the output files from the reducer-output directory to the final output directory given in the original job creation message (create the directory if it doesn’t exist first). Check the job queue for the next available job, or go back to listening for jobs if there isn't one currently.</p>
 <h3 id="shutdown---master-worker">Shutdown - [Master + Worker]</h3>
 <p>The Master can also receive a special message to initiate server shutdown. The shutdown message will be of the following form and will be received on the main TCP socket:</p>
 <pre class="sourceCode python3"><code>{

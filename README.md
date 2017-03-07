@@ -1,16 +1,15 @@
 EECS 485 Project 4: Map Reduce
 ==============================
 
-
 ## Quick start
 Check out code:
 ```
-git clone git@github.com:eecs485staff/p4-mapreduce-w17.git
+git clone git@github.com:eecs485staff/p4-mapreduce-w17-public.git
 ```
 
 Install Python requirements.
 ```
-cd p4-mapreduce-w17/
+cd p4-mapreduce-w17-public/
 source {your path here}/venv/bin/activate
 pip install -r reqs.txt
 ```
