@@ -309,7 +309,7 @@ files for the reducers. The messages sent to the workers should look like this:
 .. code:: python3
 
     {
-      "message_type": "sort_job",
+      "message_type": "new_sort_job",
       "input_files": [list of strings],
       "output_file": string,
       "worker_pid": int

@@ -341,7 +341,7 @@ reducers. The messages sent to the workers should look like this:
 
 ``` {.sourceCode .python3}
 {
-  "message_type": "sort_job",
+  "message_type": "new_sort_job",
   "input_files": [list of strings],
   "output_file": string,
   "worker_pid": int

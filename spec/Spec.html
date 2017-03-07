@@ -115,7 +115,7 @@ send_job.py, helper.py</code>). The master and the worker run as seperate proces
 <p>Once all of the mappers have finished, the Master will start the “grouping” phase. This should begin right after the LAST worker finishes the Map stage (i.e. you will get a finished message from a Worker and the <code class="sourceCode">handle_msg</code> handling that message will continue this grouping stage).</p>
 <p>To start the group stage, the master looks at all of the files created by the mappers, and assigns workers to sort and merge the files. If there are more files than workers, the master should attempt to balance the files evenly among them. If there are less files than workers, it is okay if some sit idle during this statge. Each worker will be responsible for merging some number of files into one larger file. The master will then take these files, merge them into one larger file, and then partition that file into the correct number of files for the reducers. The messages sent to the workers should look like this:</p>
 <pre class="sourceCode python3"><code>{
-  &quot;message_type&quot;: &quot;sort_job&quot;,
+  &quot;message_type&quot;: &quot;new_sort_job&quot;,
   &quot;input_files&quot;: [list of strings],
   &quot;output_file&quot;: string,
   &quot;worker_pid&quot;: int
