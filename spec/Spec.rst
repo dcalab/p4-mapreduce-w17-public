@@ -1,8 +1,3 @@
-.. raw:: html
-
-    <style> .red {color:red} </style>
-
-
 Project 4: Make MapReduce Great Again
 ----------------------------------------------
 **Due March 27th, 2017**
