@@ -105,6 +105,7 @@ On startup, the Master should do the following:
 - Create a new folder in the main project directory called :code:`var` (delete it if it already exists first). This is where we will store all intermediate files used by the MapReduce server.
 - Create a new thread, which will listen for UDP heartbeat messages from the workers. This should listen on (:code:`port_number - 1`)
 - Create a new TCP socket on the given :code:`port_number` and call the :code:`listen()` function.
+- Create any additional threads or setup you think you may need. Another thread for fault tolerance could be helpful.
 - Wait for incoming messages!
 
 Worker Class
@@ -120,9 +121,10 @@ The Worker should accept two arguments in its constructor.
 On initialization, each worker should do a similar sequence of actions
 as the Master:
 
-- Create a new thread which will be responsible for sending heartbeat messages to the master.
-- Create a new TCP socket on the given :code:`worker_port` and call the :code:`listen()` function.
 - Get the process ID of the worker. This will be the worker's unique ID, which it should then use to register with the master.
+- Create a new TCP socket on the given :code:`worker_port` and call the :code:`listen()` function.
+- Send the :code:`register` message to the master
+- Upon receit of the :code:`register_ack` message has been received, create a new thread which will be responsible for sending heartbeat messages to the master.
 
 
 Server Functionality
@@ -252,11 +254,15 @@ they have work to do:
 
     {
       "message_type": "new_worker_job",
-      "input_file" : string,
+      "input_files": [list of strings],
       "executable": string,
       "output_directory": string
       "worker_pid": int
     }
+
+Consider the case where there are 2 workers available, 5 input files and 4 map tasks specified. The master should create 4 tasks,
+3 with one file each and 1 with 2 files. It would then attempt to balance these tasks among all the workers. In this case, it would send
+2 map tasks to each worker.
 
 Mapping - [Workers]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -421,6 +427,9 @@ they must match your server’s output, as follows:
 
     cat var/job-{id}/reducer-output/* | sort > test.txt
     diff test.txt truth.txt
+
+Note that these executables can be in any language - your server should not limit us to running map and reduce jobs written in python3!
+To help you test this, we have also provided you with a word count solution written as bash map and reduce scripts.
 
 To test the fault tolerance for your system, try starting up the server,
 and killing processes at random, making sure that the Master can still make forward progress.
