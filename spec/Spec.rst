@@ -71,7 +71,7 @@ so you will have to start them up seperately. This can be done as follows:
     python3 worker.py 6000 6001 &
     python3 worker.py 6000 6002 &
 
-This wil start up a master which will listen on port 6000 using TCP. Then, we start up two workers, and tell
+This will start up a master which will listen on port 6000 using TCP. Then, we start up two workers, and tell
 them that they should communicate with the master on port 6000, and then tell them which port to listen
 on. The `&` means to start the process in the background.
 
@@ -226,7 +226,7 @@ reducing. Workers will do the mapping and reducing using the given
 executable files independently, but the Master and Workers will have to cooperate to do the grouping phase.
 After the directories are setup, the Master should check if there are any
 workers ready to work, and the MapReduce server is not currently executing a job.
-If there server is busy, or there are no available workers, the job should be added to an internal queue (described
+If the server is busy, or there are no available workers, the job should be added to an internal queue (described
 next) and end the function execution. If there are workers and the server is not busy, than the Master can begin job execution.
 
 Job Queue - [Master]
@@ -391,7 +391,7 @@ Each worker will have a heartbeat thread to send updates to Master via UDP. The 
     }
 
 At each point of the execution (mapping, grouping, reducing) the master should attempt to evenly distribute work among all available workers.
-If a worker dies will it is executing a task, the master will have to assign that task to another worker.
+If a worker dies while it is executing a task, the master will have to assign that task to another worker.
 Your master should attempt to maximize concurrency, but avoid duplication - that is, don't send the same job to different workers until you know that the worker who was previously assigned that task has died.
 
 Getting Started
