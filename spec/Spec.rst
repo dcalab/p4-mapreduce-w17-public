@@ -96,7 +96,7 @@ additional modes of testing).
 Master Class
 ~~~~~~~~~~~~~~~~
 
-The Master should accept only one argument in its constructor.
+The Master should accept only one command line argument.
 
 :code:`port_number` : The primary TCP port that the Master should listen on
 
@@ -104,14 +104,14 @@ On startup, the Master should do the following:
 
 - Create a new folder in the main project directory called :code:`var` (delete it if it already exists first). This is where we will store all intermediate files used by the MapReduce server.
 - Create a new thread, which will listen for UDP heartbeat messages from the workers. This should listen on (:code:`port_number - 1`)
-- Create a new TCP socket on the given :code:`port_number` and call the :code:`listen()` function.
 - Create any additional threads or setup you think you may need. Another thread for fault tolerance could be helpful.
+- Create a new TCP socket on the given :code:`port_number` and call the :code:`listen()` function.
 - Wait for incoming messages!
 
 Worker Class
 ~~~~~~~~~~~~~~~~
 
-The Worker should accept two arguments in its constructor.
+The Worker should accept two command line arguments.
 
 :code:`master_port`: The TCP socket that the Master is actively listening on
 (same as the port_number in the Master constructor)
@@ -122,8 +122,8 @@ On initialization, each worker should do a similar sequence of actions
 as the Master:
 
 - Get the process ID of the worker. This will be the worker's unique ID, which it should then use to register with the master.
-- Create a new TCP socket on the given :code:`worker_port` and call the :code:`listen()` function.
 - Send the :code:`register` message to the master
+- Create a new TCP socket on the given :code:`worker_port` and call the :code:`listen()` function.
 - Upon receit of the :code:`register_ack` message has been received, create a new thread which will be responsible for sending heartbeat messages to the master.
 
 
@@ -391,7 +391,7 @@ Each worker will have a heartbeat thread to send updates to Master via UDP. The 
     }
 
 At each point of the execution (mapping, grouping, reducing) the master should attempt to evenly distribute work among all available workers.
-If a worker dies while it is executing a task, the master will have to assign that task to another worker.
+If a worker dies while it is executing a task, the master will have to assign that task to another worker. You should mark the failed worker as dead, but don't remove it from the master's internal data structures.
 Your master should attempt to maximize concurrency, but avoid duplication - that is, don't send the same job to different workers until you know that the worker who was previously assigned that task has died.
 
 Getting Started

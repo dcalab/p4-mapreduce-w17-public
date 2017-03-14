@@ -73,7 +73,7 @@ python3 worker.py 6000 6001 &
 python3 worker.py 6000 6002 &
 ```
 
-This wil start up a master which will listen on port 6000 using TCP.
+This will start up a master which will listen on port 6000 using TCP.
 Then, we start up two workers, and tell them that they should
 communicate with the master on port 6000, and then tell them which port
 to listen on. The & means to start the process in the background.
@@ -98,7 +98,7 @@ but you will need additional modes of testing).
 
 ### Master Class
 
-The Master should accept only one argument in its constructor.
+The Master should accept only one command line argument.
 
 `port_number`{.sourceCode} : The primary TCP port that the Master should
 listen on
@@ -112,13 +112,15 @@ On startup, the Master should do the following:
 -   Create a new thread, which will listen for UDP heartbeat messages
     from the workers. This should listen on
     (`port_number - 1`{.sourceCode})
+-   Create any additional threads or setup you think you may need.
+    Another thread for fault tolerance could be helpful.
 -   Create a new TCP socket on the given `port_number`{.sourceCode} and
     call the `listen()`{.sourceCode} function.
 -   Wait for incoming messages!
 
 ### Worker Class
 
-The Worker should accept two arguments in its constructor.
+The Worker should accept two command line arguments.
 
 `master_port`{.sourceCode}: The TCP socket that the Master is actively
 listening on (same as the port\_number in the Master constructor)
@@ -129,12 +131,14 @@ listen on to receive instructions from the master
 On initialization, each worker should do a similar sequence of actions
 as the Master:
 
--   Create a new thread which will be responsible for sending heartbeat
-    messages to the master.
--   Create a new TCP socket on the given `worker_port`{.sourceCode} and
-    call the `listen()`{.sourceCode} function.
 -   Get the process ID of the worker. This will be the worker's unique
     ID, which it should then use to register with the master.
+-   Send the `register`{.sourceCode} message to the master
+-   Create a new TCP socket on the given `worker_port`{.sourceCode} and
+    call the `listen()`{.sourceCode} function.
+-   Upon receit of the `register_ack`{.sourceCode} message has been
+    received, create a new thread which will be responsible for sending
+    heartbeat messages to the master.
 
 Server Functionality
 --------------------
@@ -247,7 +251,7 @@ reducing. Workers will do the mapping and reducing using the given
 executable files independently, but the Master and Workers will have to
 cooperate to do the grouping phase. After the directories are setup, the
 Master should check if there are any workers ready to work, and the
-MapReduce server is not currently executing a job. If there server is
+MapReduce server is not currently executing a job. If the server is
 busy, or there are no available workers, the job should be added to an
 internal queue (described next) and end the function execution. If there
 are workers and the server is not busy, than the Master can begin job
@@ -279,12 +283,18 @@ work to do:
 ``` {.sourceCode .python3}
 {
   "message_type": "new_worker_job",
-  "input_file" : string,
+  "input_files": [list of strings],
   "executable": string,
   "output_directory": string
   "worker_pid": int
 }
 ```
+
+Consider the case where there are 2 workers available, 5 input files and
+4 map tasks specified. The master should create 4 tasks, 3 with one file
+each and 1 with 2 files. It would then attempt to balance these tasks
+among all the workers. In this case, it would send 2 map tasks to each
+worker.
 
 ### Mapping - [Workers]
 
@@ -420,11 +430,11 @@ workers, the master should terminate itself.
 
 Workers can die at any time, and may not finish jobs that you send them.
 Your master must accommodate for this. If a workers misses more than 5
-pings, you should assume that it has died, and assign whatever work it
-was responsible for to another worker machine.
+pings in a row, you should assume that it has died, and assign whatever
+work it was responsible for to another worker machine.
 
 Each worker will have a heartbeat thread to send updates to Master via
-UDP. The messages should like this.
+UDP. The messages should like this, and should be sent every 2 seconds:
 
 ``` {.sourceCode .python3}
 {
@@ -435,11 +445,13 @@ UDP. The messages should like this.
 
 At each point of the execution (mapping, grouping, reducing) the master
 should attempt to evenly distribute work among all available workers. If
-a worker dies will it is executing a task, the master will have to
-assign that task to another worker. Your master should attempt to
-maximize concurrency, but avoid duplication - that is, don't send the
-same job to different workers until you know that the worker who was
-previously assigned that task has died.
+a worker dies while it is executing a task, the master will have to
+assign that task to another worker. You should mark the failed worker as
+dead, but don't remove it from the master's internal data structures.
+Your master should attempt to maximize concurrency, but avoid
+duplication - that is, don't send the same job to different workers
+until you know that the worker who was previously assigned that task has
+died.
 
 Getting Started
 ---------------
@@ -487,6 +499,11 @@ answers and they must match your server’s output, as follows:
 cat var/job-{id}/reducer-output/* | sort > test.txt
 diff test.txt truth.txt
 ```
+
+Note that these executables can be in any language - your server should
+not limit us to running map and reduce jobs written in python3! To help
+you test this, we have also provided you with a word count solution
+written as bash map and reduce scripts.
 
 To test the fault tolerance for your system, try starting up the server,
 and killing processes at random, making sure that the Master can still
