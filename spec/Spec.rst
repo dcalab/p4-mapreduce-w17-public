@@ -378,9 +378,10 @@ After forwarding the message to all workers, the master should terminate itself.
 Fault tolerance + Heartbeats - [Master + Worker]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Workers can die at any time, and may not finish jobs that you send them. Your master must accommodate for this. If a workers misses more than 5 pings, you should assume that it has died, and assign whatever work it was responsible for to another worker machine.
+Workers can die at any time, and may not finish jobs that you send them. Your master must accommodate for this.
+If a workers misses more than 5 pings in a row, you should assume that it has died, and assign whatever work it was responsible for to another worker machine.
 
-Each worker will have a heartbeat thread to send updates to Master via UDP. The messages should like this.
+Each worker will have a heartbeat thread to send updates to Master via UDP. The messages should like this, and should be sent every 2 seconds:
 
 .. code:: python3
 
@@ -389,7 +390,9 @@ Each worker will have a heartbeat thread to send updates to Master via UDP. The 
       "worker_pid": int
     }
 
-At each point of the execution (mapping, grouping, reducing) the master should attempt to evenly distribute work among all available workers. If a worker dies will it is executing a task, the master will have to assign that task to another worker. Your master should attempt to maximize concurrency, but avoid duplication - that is, don't send the same job to different workers until you know that the worker who was previously assigned that task has died.
+At each point of the execution (mapping, grouping, reducing) the master should attempt to evenly distribute work among all available workers.
+If a worker dies will it is executing a task, the master will have to assign that task to another worker.
+Your master should attempt to maximize concurrency, but avoid duplication - that is, don't send the same job to different workers until you know that the worker who was previously assigned that task has died.
 
 Getting Started
 ^^^^^^^^^^^^^^^^^^^^^^^^
