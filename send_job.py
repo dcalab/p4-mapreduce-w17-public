@@ -16,7 +16,9 @@ def main(port_number=DEFAULT_PORT_NUM):
         "input_directory": "./input",
         "output_directory": "./output",
         "mapper_executable": "./map",
-        "reducer_executable": "./reduce"
+        "reducer_executable": "./reduce",
+        "num_mappers": 4,
+        "num_reducers": 2
     }
 
     message = json.dumps(job_dict)
