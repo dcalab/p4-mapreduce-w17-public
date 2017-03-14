@@ -15,30 +15,32 @@ send_job.py, helper.py</code>). The master and the worker run as seperate proces
 <pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">python3</span> master.py 6000 <span class="kw">&amp;</span>
 <span class="kw">python3</span> worker.py 6000 6001 <span class="kw">&amp;</span>
 <span class="kw">python3</span> worker.py 6000 6002 <span class="kw">&amp;</span></code></pre>
-<p>This wil start up a master which will listen on port 6000 using TCP. Then, we start up two workers, and tell them that they should communicate with the master on port 6000, and then tell them which port to listen on. The &amp; means to start the process in the background.</p>
+<p>This will start up a master which will listen on port 6000 using TCP. Then, we start up two workers, and tell them that they should communicate with the master on port 6000, and then tell them which port to listen on. The &amp; means to start the process in the background.</p>
 <p>We have provided a starter script that you can run as follows:</p>
 <pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">sh</span> start.sh</code></pre>
 <p>Your code will go in master.py and worker.py, where you will be defining the two classes. Optionally, you can use helper.py as an extra python file for helper code and abstractions (for example, we used it to store code that was common to both the Master and the Workers). We will only define the communication specs for the Master and the Worker, but the actual implementation of the classes is entirely up to you.</p>
 <p>Lastly, we have also provided you with <code class="sourceCode">send_job.py</code>, which accepts <code class="sourceCode">port_number</code> as a command line argument. It sends a sample job to the Master’s main TCP socket (for testing purposes only, but you will need additional modes of testing).</p>
 <h3 id="master-class">Master Class</h3>
-<p>The Master should accept only one argument in its constructor.</p>
+<p>The Master should accept only one command line argument.</p>
 <p><code class="sourceCode">port_number</code> : The primary TCP port that the Master should listen on</p>
 <p>On startup, the Master should do the following:</p>
 <ul>
 <li>Create a new folder in the main project directory called <code class="sourceCode">var</code> (delete it if it already exists first). This is where we will store all intermediate files used by the MapReduce server.</li>
 <li>Create a new thread, which will listen for UDP heartbeat messages from the workers. This should listen on (<code class="sourceCode">port_number - 1</code>)</li>
+<li>Create any additional threads or setup you think you may need. Another thread for fault tolerance could be helpful.</li>
 <li>Create a new TCP socket on the given <code class="sourceCode">port_number</code> and call the <code class="sourceCode">listen()</code> function.</li>
 <li>Wait for incoming messages!</li>
 </ul>
 <h3 id="worker-class">Worker Class</h3>
-<p>The Worker should accept two arguments in its constructor.</p>
+<p>The Worker should accept two command line arguments.</p>
 <p><code class="sourceCode">master_port</code>: The TCP socket that the Master is actively listening on (same as the port_number in the Master constructor)</p>
 <p><code class="sourceCode">worker_port</code>: The TCP socket that this worker should listen on to receive instructions from the master</p>
 <p>On initialization, each worker should do a similar sequence of actions as the Master:</p>
 <ul>
-<li>Create a new thread which will be responsible for sending heartbeat messages to the master.</li>
-<li>Create a new TCP socket on the given <code class="sourceCode">worker_port</code> and call the <code class="sourceCode">listen()</code> function.</li>
 <li>Get the process ID of the worker. This will be the worker's unique ID, which it should then use to register with the master.</li>
+<li>Send the <code class="sourceCode">register</code> message to the master</li>
+<li>Create a new TCP socket on the given <code class="sourceCode">worker_port</code> and call the <code class="sourceCode">listen()</code> function.</li>
+<li>Upon receit of the <code class="sourceCode">register_ack</code> message has been received, create a new thread which will be responsible for sending heartbeat messages to the master.</li>
 </ul>
 <h2 id="server-functionality">Server Functionality</h2>
 <p>Here, we described the functionality of the MapReduce server. The fun part is that we are only defining the functionality and the communication spec, the implementation is entirely up to you. You must follow our exact specifications below, and the Master and the Worker should work independently (i.e. do not add any more data or dependencies between the two classes). Remember that the master/workers are listening on TCP/UDP sockets for all incoming messages. <strong>Note</strong>: To test your server, we will test your worker with our master and your master with our worker. You should <em>not</em> rely on any communication other than the message listed below.</p>
@@ -88,19 +90,20 @@ send_job.py, helper.py</code>). The master and the worker run as seperate proces
     <span class="kw">mapper-output/</span>
     <span class="kw">grouper-output/</span>
     <span class="kw">reducer-output/</span></code></pre>
-<p>Remember, each MapReduce job occurs in 3 phases: mapping, grouping, reducing. Workers will do the mapping and reducing using the given executable files independently, but the Master and Workers will have to cooperate to do the grouping phase. After the directories are setup, the Master should check if there are any workers ready to work, and the MapReduce server is not currently executing a job. If there server is busy, or there are no available workers, the job should be added to an internal queue (described next) and end the function execution. If there are workers and the server is not busy, than the Master can begin job execution.</p>
+<p>Remember, each MapReduce job occurs in 3 phases: mapping, grouping, reducing. Workers will do the mapping and reducing using the given executable files independently, but the Master and Workers will have to cooperate to do the grouping phase. After the directories are setup, the Master should check if there are any workers ready to work, and the MapReduce server is not currently executing a job. If the server is busy, or there are no available workers, the job should be added to an internal queue (described next) and end the function execution. If there are workers and the server is not busy, than the Master can begin job execution.</p>
 <h3 id="job-queue---master">Job Queue - [Master]</h3>
 <p>If a Master receives a new job while it is already executing one, it should accept the job, create the directories, and store the job in an internal queue until the current one has finished. As soon as a job finishes, the Master should process the next pending job if there is one by starting it’s Map stage. For simplicity, in this project, your MapReduce server will only execute one MapReduce task at any time.</p>
 <p>As noted earlier, when you see the first worker register to work, you should check the job queue for pending jobs.</p>
 <h3 id="input-partitioning---master">Input Partitioning - [Master]</h3>
-<p>To start off the Map Stage, the Master should scan the input directory and divide the input files in ‘X’ equal parts (where ‘X’ is the number of map tasks specified in the incoming job). After partitioning the input, the Master needs to let each worker know what work it is responsible for. Each worker could get zero, one, or many such tasks. The Master will send a JSON message of the following form to each worker (on each worker’s specific TCP socket), letting them know that they have work to do:</p>
+<p>To start off the Map Stage, the Master should scan the input directory and partition the input files in ‘X’ equal parts (where ‘X’ is the number of map tasks specified in the incoming job). After partitioning the input, the Master needs to let each worker know what work it is responsible for. Each worker could get zero, one, or many such tasks. The Master will send a JSON message of the following form to each worker (on each worker’s specific TCP socket), letting them know that they have work to do:</p>
 <pre class="sourceCode python3"><code>{
   &quot;message_type&quot;: &quot;new_worker_job&quot;,
-  &quot;input_file&quot; : string,
+  &quot;input_files&quot;: [list of strings],
   &quot;executable&quot;: string,
   &quot;output_directory&quot;: string
   &quot;worker_pid&quot;: int
 }</code></pre>
+<p>Consider the case where there are 2 workers available, 5 input files and 4 map tasks specified. The master should create 4 tasks, 3 with one file each and 1 with 2 files. It would then attempt to balance these tasks among all the workers. In this case, it would send 2 map tasks to each worker. The master does not need to wait for a done message before it assigns more tasks to a worker - a worker should be able to handle multiple tasks at the same time.</p>
 <h3 id="mapping---workers">Mapping - [Workers]</h3>
 <p>When a worker receives this new job message, it’s <code class="sourceCode">handle_msg</code> will start execution of the given executable over the specified input file, while directing the output to the given output_directory (one output file per input file and you should run the executable on each input file). The input is passed to the executable through standard in and is outputted to a specific file. The output file names should be the same as the input file (overwrite file if it already exists). The output_directory in the Map stage will always be the mapper-output folder (i.e. <code class="sourceCode">var/job-{id}/mapper-output/</code>). For example, the master should specify the input file is <code class="sourceCode">data/input/file_001.txt</code> and the output file <code class="sourceCode">var/job-0/mapper-output/file_001.txt</code></p>
 <p>Hint: See the command line package sh listed in the Libraries section. See <code class="sourceCode">sh.Command(...)</code>, and the <code class="sourceCode">_in</code> and <code class="sourceCode">_out</code> arguments in order to funnel the input and output easily.</p>
@@ -146,13 +149,13 @@ send_job.py, helper.py</code>). The master and the worker run as seperate proces
 }</code></pre>
 <p>The master should forward this message to all of the workers that have registered with it. The workers, upon receiving the shutdown message, should immediately terminate. After forwarding the message to all workers, the master should terminate itself.</p>
 <h3 id="fault-tolerance-heartbeats---master-worker">Fault tolerance + Heartbeats - [Master + Worker]</h3>
-<p>Workers can die at any time, and may not finish jobs that you send them. Your master must accommodate for this. If a workers misses more than 5 pings, you should assume that it has died, and assign whatever work it was responsible for to another worker machine.</p>
-<p>Each worker will have a heartbeat thread to send updates to Master via UDP. The messages should like this.</p>
+<p>Workers can die at any time, and may not finish jobs that you send them. Your master must accommodate for this. If a workers misses more than 5 pings in a row, you should assume that it has died, and assign whatever work it was responsible for to another worker machine.</p>
+<p>Each worker will have a heartbeat thread to send updates to Master via UDP. The messages should look like this, and should be sent every 2 seconds:</p>
 <pre class="sourceCode python3"><code>{
   &quot;message_type&quot;: &quot;heartbeat&quot;,
   &quot;worker_pid&quot;: int
 }</code></pre>
-<p>At each point of the execution (mapping, grouping, reducing) the master should attempt to evenly distribute work among all available workers. If a worker dies will it is executing a task, the master will have to assign that task to another worker. Your master should attempt to maximize concurrency, but avoid duplication - that is, don't send the same job to different workers until you know that the worker who was previously assigned that task has died.</p>
+<p>At each point of the execution (mapping, grouping, reducing) the master should attempt to evenly distribute work among all available workers. If a worker dies while it is executing a task, the master will have to assign that task to another worker. You should mark the failed worker as dead, but don't remove it from the master's internal data structures. Your master should attempt to maximize concurrency, but avoid duplication - that is, don't send the same job to different workers until you know that the worker who was previously assigned that task has died.</p>
 <h2 id="getting-started">Getting Started</h2>
 <p>There are a lot of files in the starter folder for this project. Here is a high level summary:</p>
 <ul>
@@ -175,6 +178,7 @@ send_job.py, helper.py</code>). The master and the worker run as seperate proces
 <p>This will generate a file called <code class="sourceCode">truth.txt</code> with the final answers and they must match your server’s output, as follows:</p>
 <pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">cat</span> var/job-<span class="dt">{id}</span>/reducer-output/* <span class="kw">|</span> <span class="kw">sort</span> <span class="kw">&gt;</span> test.txt
 <span class="kw">diff</span> test.txt truth.txt</code></pre>
+<p>Note that these executables can be in any language - your server should not limit us to running map and reduce jobs written in python3! To help you test this, we have also provided you with a word count solution written in bash.</p>
 <p>To test the fault tolerance for your system, try starting up the server, and killing processes at random, making sure that the Master can still make forward progress. Then, you can try running “long running” jobs (using <code class="sourceCode">sleep()</code>, or similar), and kill workers as they are executing jobs. If your code can handle processes being killed and still eventually produce the correct output, you’re in good shape.</p>
 <p>Note that the autograder will swap out your Master for our Master in order to test the Worker (and vice versa). Your code should have no other dependency besides the communication spec, and the messages sent in your system must match those listed in this spec exactly.</p>
 <h2 id="libraries">Libraries</h2>

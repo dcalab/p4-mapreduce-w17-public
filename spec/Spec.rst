@@ -71,7 +71,7 @@ so you will have to start them up seperately. This can be done as follows:
     python3 worker.py 6000 6001 &
     python3 worker.py 6000 6002 &
 
-This wil start up a master which will listen on port 6000 using TCP. Then, we start up two workers, and tell
+This will start up a master which will listen on port 6000 using TCP. Then, we start up two workers, and tell
 them that they should communicate with the master on port 6000, and then tell them which port to listen
 on. The `&` means to start the process in the background.
 
@@ -96,7 +96,7 @@ additional modes of testing).
 Master Class
 ~~~~~~~~~~~~~~~~
 
-The Master should accept only one argument in its constructor.
+The Master should accept only one command line argument.
 
 :code:`port_number` : The primary TCP port that the Master should listen on
 
@@ -104,13 +104,14 @@ On startup, the Master should do the following:
 
 - Create a new folder in the main project directory called :code:`var` (delete it if it already exists first). This is where we will store all intermediate files used by the MapReduce server.
 - Create a new thread, which will listen for UDP heartbeat messages from the workers. This should listen on (:code:`port_number - 1`)
+- Create any additional threads or setup you think you may need. Another thread for fault tolerance could be helpful.
 - Create a new TCP socket on the given :code:`port_number` and call the :code:`listen()` function.
 - Wait for incoming messages!
 
 Worker Class
 ~~~~~~~~~~~~~~~~
 
-The Worker should accept two arguments in its constructor.
+The Worker should accept two command line arguments.
 
 :code:`master_port`: The TCP socket that the Master is actively listening on
 (same as the port_number in the Master constructor)
@@ -120,9 +121,10 @@ The Worker should accept two arguments in its constructor.
 On initialization, each worker should do a similar sequence of actions
 as the Master:
 
-- Create a new thread which will be responsible for sending heartbeat messages to the master.
-- Create a new TCP socket on the given :code:`worker_port` and call the :code:`listen()` function.
 - Get the process ID of the worker. This will be the worker's unique ID, which it should then use to register with the master.
+- Send the :code:`register` message to the master
+- Create a new TCP socket on the given :code:`worker_port` and call the :code:`listen()` function.
+- Upon receit of the :code:`register_ack` message has been received, create a new thread which will be responsible for sending heartbeat messages to the master.
 
 
 Server Functionality
@@ -224,7 +226,7 @@ reducing. Workers will do the mapping and reducing using the given
 executable files independently, but the Master and Workers will have to cooperate to do the grouping phase.
 After the directories are setup, the Master should check if there are any
 workers ready to work, and the MapReduce server is not currently executing a job.
-If there server is busy, or there are no available workers, the job should be added to an internal queue (described
+If the server is busy, or there are no available workers, the job should be added to an internal queue (described
 next) and end the function execution. If there are workers and the server is not busy, than the Master can begin job execution.
 
 Job Queue - [Master]
@@ -241,7 +243,7 @@ should check the job queue for pending jobs.
 
 Input Partitioning - [Master]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-To start off the Map Stage, the Master should scan the input directory and divide the
+To start off the Map Stage, the Master should scan the input directory and partition the
 input files in ‘X’ equal parts (where ‘X’ is the number of map tasks specified in the incoming job).
 After partitioning the input, the Master needs to let each worker know what work it is responsible
 for. Each worker could get zero, one, or many such tasks. The Master will send a JSON message of the following form to each
@@ -252,11 +254,16 @@ they have work to do:
 
     {
       "message_type": "new_worker_job",
-      "input_file" : string,
+      "input_files": [list of strings],
       "executable": string,
       "output_directory": string
       "worker_pid": int
     }
+
+Consider the case where there are 2 workers available, 5 input files and 4 map tasks specified. The master should create 4 tasks,
+3 with one file each and 1 with 2 files. It would then attempt to balance these tasks among all the workers. In this case, it would send
+2 map tasks to each worker. The master does not need to wait for a done message before it assigns more tasks to a worker - a worker should be able
+to handle multiple tasks at the same time.
 
 Mapping - [Workers]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -372,9 +379,10 @@ After forwarding the message to all workers, the master should terminate itself.
 Fault tolerance + Heartbeats - [Master + Worker]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Workers can die at any time, and may not finish jobs that you send them. Your master must accommodate for this. If a workers misses more than 5 pings, you should assume that it has died, and assign whatever work it was responsible for to another worker machine.
+Workers can die at any time, and may not finish jobs that you send them. Your master must accommodate for this.
+If a workers misses more than 5 pings in a row, you should assume that it has died, and assign whatever work it was responsible for to another worker machine.
 
-Each worker will have a heartbeat thread to send updates to Master via UDP. The messages should like this.
+Each worker will have a heartbeat thread to send updates to Master via UDP. The messages should look like this, and should be sent every 2 seconds:
 
 .. code:: python3
 
@@ -383,7 +391,9 @@ Each worker will have a heartbeat thread to send updates to Master via UDP. The 
       "worker_pid": int
     }
 
-At each point of the execution (mapping, grouping, reducing) the master should attempt to evenly distribute work among all available workers. If a worker dies will it is executing a task, the master will have to assign that task to another worker. Your master should attempt to maximize concurrency, but avoid duplication - that is, don't send the same job to different workers until you know that the worker who was previously assigned that task has died.
+At each point of the execution (mapping, grouping, reducing) the master should attempt to evenly distribute work among all available workers.
+If a worker dies while it is executing a task, the master will have to assign that task to another worker. You should mark the failed worker as dead, but don't remove it from the master's internal data structures.
+Your master should attempt to maximize concurrency, but avoid duplication - that is, don't send the same job to different workers until you know that the worker who was previously assigned that task has died.
 
 Getting Started
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -421,6 +431,9 @@ they must match your server’s output, as follows:
 
     cat var/job-{id}/reducer-output/* | sort > test.txt
     diff test.txt truth.txt
+
+Note that these executables can be in any language - your server should not limit us to running map and reduce jobs written in python3!
+To help you test this, we have also provided you with a word count solution written in bash.
 
 To test the fault tolerance for your system, try starting up the server,
 and killing processes at random, making sure that the Master can still make forward progress.
