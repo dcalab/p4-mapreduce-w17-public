@@ -1,3 +1,8 @@
+.. raw:: html
+
+    <style> .red {color:red} </style>
+
+
 Project 4: Make MapReduce Great Again
 ----------------------------------------------
 **Due March 27th, 2017**
@@ -243,7 +248,7 @@ should check the job queue for pending jobs.
 
 Input Partitioning - [Master]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-To start off the Map Stage, the Master should scan the input directory and divide the
+To start off the Map Stage, the Master should scan the input directory and partition the
 input files in ‘X’ equal parts (where ‘X’ is the number of map tasks specified in the incoming job).
 After partitioning the input, the Master needs to let each worker know what work it is responsible
 for. Each worker could get zero, one, or many such tasks. The Master will send a JSON message of the following form to each
@@ -262,7 +267,8 @@ they have work to do:
 
 Consider the case where there are 2 workers available, 5 input files and 4 map tasks specified. The master should create 4 tasks,
 3 with one file each and 1 with 2 files. It would then attempt to balance these tasks among all the workers. In this case, it would send
-2 map tasks to each worker.
+2 map tasks to each worker. The master does not need to wait for a done message before it assigns more tasks to a worker - a worker should be able
+to handle multiple tasks at the same time.
 
 Mapping - [Workers]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
