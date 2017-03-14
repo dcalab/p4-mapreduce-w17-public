@@ -434,7 +434,8 @@ pings in a row, you should assume that it has died, and assign whatever
 work it was responsible for to another worker machine.
 
 Each worker will have a heartbeat thread to send updates to Master via
-UDP. The messages should like this, and should be sent every 2 seconds:
+UDP. The messages should look like this, and should be sent every 2
+seconds:
 
 ``` {.sourceCode .python3}
 {
@@ -503,7 +504,7 @@ diff test.txt truth.txt
 Note that these executables can be in any language - your server should
 not limit us to running map and reduce jobs written in python3! To help
 you test this, we have also provided you with a word count solution
-written as bash map and reduce scripts.
+written in bash.
 
 To test the fault tolerance for your system, try starting up the server,
 and killing processes at random, making sure that the Master can still

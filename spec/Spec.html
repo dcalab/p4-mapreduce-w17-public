@@ -150,7 +150,7 @@ send_job.py, helper.py</code>). The master and the worker run as seperate proces
 <p>The master should forward this message to all of the workers that have registered with it. The workers, upon receiving the shutdown message, should immediately terminate. After forwarding the message to all workers, the master should terminate itself.</p>
 <h3 id="fault-tolerance-heartbeats---master-worker">Fault tolerance + Heartbeats - [Master + Worker]</h3>
 <p>Workers can die at any time, and may not finish jobs that you send them. Your master must accommodate for this. If a workers misses more than 5 pings in a row, you should assume that it has died, and assign whatever work it was responsible for to another worker machine.</p>
-<p>Each worker will have a heartbeat thread to send updates to Master via UDP. The messages should like this, and should be sent every 2 seconds:</p>
+<p>Each worker will have a heartbeat thread to send updates to Master via UDP. The messages should look like this, and should be sent every 2 seconds:</p>
 <pre class="sourceCode python3"><code>{
   &quot;message_type&quot;: &quot;heartbeat&quot;,
   &quot;worker_pid&quot;: int
@@ -178,7 +178,7 @@ send_job.py, helper.py</code>). The master and the worker run as seperate proces
 <p>This will generate a file called <code class="sourceCode">truth.txt</code> with the final answers and they must match your server’s output, as follows:</p>
 <pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">cat</span> var/job-<span class="dt">{id}</span>/reducer-output/* <span class="kw">|</span> <span class="kw">sort</span> <span class="kw">&gt;</span> test.txt
 <span class="kw">diff</span> test.txt truth.txt</code></pre>
-<p>Note that these executables can be in any language - your server should not limit us to running map and reduce jobs written in python3! To help you test this, we have also provided you with a word count solution written as bash map and reduce scripts.</p>
+<p>Note that these executables can be in any language - your server should not limit us to running map and reduce jobs written in python3! To help you test this, we have also provided you with a word count solution written in bash.</p>
 <p>To test the fault tolerance for your system, try starting up the server, and killing processes at random, making sure that the Master can still make forward progress. Then, you can try running “long running” jobs (using <code class="sourceCode">sleep()</code>, or similar), and kill workers as they are executing jobs. If your code can handle processes being killed and still eventually produce the correct output, you’re in good shape.</p>
 <p>Note that the autograder will swap out your Master for our Master in order to test the Worker (and vice versa). Your code should have no other dependency besides the communication spec, and the messages sent in your system must match those listed in this spec exactly.</p>
 <h2 id="libraries">Libraries</h2>
