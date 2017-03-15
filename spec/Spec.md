@@ -327,7 +327,7 @@ should send a TCP message to the Master’s main socket of the form:
 ``` {.sourceCode .python3}
 {
   "message_type": "status",
-  "output_file" : string,
+  "output_files" : [list of strings],
   "status": "finished"
   "worker_pid": int
 }

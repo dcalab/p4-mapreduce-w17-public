@@ -110,7 +110,7 @@ send_job.py, helper.py</code>). The master and the worker run as seperate proces
 <p>The worker should be agnostic to map or reduce jobs. Regardless of the type of operation, the worker is responsible for running the specified executable over the input files one by one, and piping to the output directory for each input file. Once a Worker has finished its job, it should send a TCP message to the Master’s main socket of the form:</p>
 <pre class="sourceCode python3"><code>{
   &quot;message_type&quot;: &quot;status&quot;,
-  &quot;output_file&quot; : string,
+  &quot;output_files&quot; : [list of strings],
   &quot;status&quot;: &quot;finished&quot;
   &quot;worker_pid&quot;: int
 }</code></pre>

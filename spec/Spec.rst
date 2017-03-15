@@ -292,7 +292,7 @@ socket of the form:
 
     {
       "message_type": "status",
-      "output_file" : string,
+      "output_files" : [list of strings],
       "status": "finished"
       "worker_pid": int
     }
